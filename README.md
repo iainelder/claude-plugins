@@ -5,18 +5,11 @@ Iain Elder's personal Claude Code marketplace.
 One marketplace (`iainelder`) containing one plugin (`iainelder`), which holds portable
 skills that are useful in any repository.
 
-| Level | Value |
-| :--- | :--- |
-| Repository | `iainelder/claude-plugins` |
-| Marketplace name | `iainelder` |
-| Plugin name | `iainelder` |
-| Skills | `read-github-issues-images` |
+## Skills
 
-The marketplace name is deliberately **not** the same as the repository name, so the
-install commands below are the source of truth — copy them rather than deriving the
-name from the repository.
+Just one to start: [`read-github-issues-images`](plugins/iainelder/skills/read-github-issues-images/SKILL.md).
 
-## Install where marketplaces are permitted
+## Install via marketplace
 
 Two commands. The first registers the catalog; the second installs from it.
 
@@ -30,19 +23,21 @@ Skills are namespaced by the plugin, so this installs `/iainelder:read-github-is
 Refresh later with `claude plugin marketplace update iainelder`, or turn on background
 auto-update in `/plugin` (it is off by default for third-party marketplaces).
 
-## Install where this marketplace is not on the allowlist
+## Install without marketplace
 
-Managed settings can restrict which marketplaces may be added, via
-`strictKnownMarketplaces`. That restricts *marketplaces*; it does not restrict the
-skills directory. Any folder under `~/.claude/skills/` containing a
-`.claude-plugin/plugin.json` loads as a plugin named `<name>@skills-dir` on the next
-session, with no marketplace and no install step — and it is discovered in place, so
-a symlink into a git clone works.
+If you are in a corporate environment and subject to [Claude Code's managed
+settings](https://code.claude.com/docs/en/settings), they may restrict which
+marketplaces may be added, via `strictKnownMarketplaces`. That restricts
+*marketplaces*; it does not restrict the skills directory. Any folder under
+`~/.claude/skills/` containing a `.claude-plugin/plugin.json` loads as a plugin
+named `<name>@skills-dir` on the next session, with no marketplace and no
+install step — and it is discovered in place, so a symlink into a git clone
+works.
 
 ```bash
-git clone https://github.com/iainelder/claude-plugins.git ~/repos/claude-plugins
+git clone https://github.com/iainelder/claude-plugins.git
 mkdir -p ~/.claude/skills
-ln -s ~/repos/claude-plugins/plugins/iainelder ~/.claude/skills/iainelder
+ln -s "$PWD"/claude-plugins/plugins/iainelder ~/.claude/skills/iainelder
 ```
 
 This loads as `iainelder@skills-dir`, with the same `/iainelder:` invocation prefix as
@@ -63,46 +58,30 @@ Do not use both installation methods on one machine: `iainelder@iainelder` and
 
 ### Keeping it current
 
-Skills-directory plugins have no auto-update — that is a marketplace feature — so
-`git pull` is the update mechanism. A systemd user timer running
-`git -C ~/repos/claude-plugins pull --ff-only` avoids adding latency to every session
-start. A `SessionStart` hook works too, if pull-on-use suits the machine better.
+Skills-directory plugins have no auto-update.
 
-Edits to a `SKILL.md` take effect in the current session. Changes to other plugin
-components need `/reload-plugins` or a restart.
+Use `git pull` to update, either in a background service or a Claude `SessionStart` hook.
+
+Later I'll figure out how to do that and show it here.
 
 ## Naming
 
-The plugin is named `iainelder` rather than something descriptive like `tools` on
-purpose.
-
-**Plugin names are not qualified by their marketplace.** Skills are invoked as
-`/<plugin>:<skill>`, never `/<plugin>@<marketplace>:<skill>`, so the plugin name alone
-is the namespace. The duplicate-name check in `claude plugin validate` only looks
-*within* one marketplace.
-
-Two plugins named `tools` from different marketplaces therefore install side by side
-with no error and no warning, both claiming the `/tools:` prefix, and a bare
-`claude plugin details tools` silently resolves to whichever it finds first. On a
-machine that already has organisation marketplaces installed, a generic plugin name is
-a real hazard.
-
-A plugin name only has to be unique among the plugins a given user has installed, but
-a GitHub username is a cheap way to guarantee that.
+The marketplace name and the plugin name exist in a global namespace where they
+are installed, so my GitHub username is a cheap way to make it unique.
 
 ## Development
 
-Edit this checkout and load it directly, without touching the installed copy:
+Clone the repo and load it directly, without touching the installed copy:
 
 ```bash
-claude --plugin-dir ~/Repos/claude-plugins/plugins/iainelder
+git clone https://github.com/iainelder/claude-plugins.git ~/tmp/dev
+claude --plugin-dir ~/tmp/dev/plugins/iainelder
 ```
 
 A `--plugin-dir` plugin takes precedence over an installed plugin of the same name for
 that session. Run `/reload-plugins` to pick up edits without restarting.
 
-Never edit `~/.claude/plugins/marketplaces/iainelder/` — Claude Code owns that clone
-and overwrites it on update.
+Never edit the versions in `~/.claude/plugins/marketplaces/`. Claude Code manages its own copy from the marketplace and will overwrite your edits without warning when it syncs new versions.
 
 Validate before pushing:
 
