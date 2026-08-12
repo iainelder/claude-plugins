@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
-  "name": "tools",
+  "name": "iainelder",
   "version": "0.1.0",
   "description": "Iain Elder's portable Claude Code skills",
   "author": {

@@ -2,14 +2,14 @@
 
 Iain Elder's personal Claude Code marketplace.
 
-One marketplace (`iainelder`) containing one plugin (`tools`), which holds portable
+One marketplace (`iainelder`) containing one plugin (`iainelder`), which holds portable
 skills that are useful in any repository.
 
 | Level | Value |
 | :--- | :--- |
 | Repository | `iainelder/claude-plugins` |
 | Marketplace name | `iainelder` |
-| Plugin name | `tools` |
+| Plugin name | `iainelder` |
 | Skills | `read-github-issues-images` |
 
 The marketplace name is deliberately **not** the same as the repository name, so the
@@ -22,10 +22,10 @@ Two commands. The first registers the catalog; the second installs from it.
 
 ```bash
 claude plugin marketplace add iainelder/claude-plugins
-claude plugin install tools@iainelder
+claude plugin install iainelder@iainelder
 ```
 
-Skills are namespaced by the plugin, so this installs `/tools:read-github-issues-images`.
+Skills are namespaced by the plugin, so this installs `/iainelder:read-github-issues-images`.
 
 Refresh later with `claude plugin marketplace update iainelder`, or turn on background
 auto-update in `/plugin` (it is off by default for third-party marketplaces).
@@ -42,11 +42,11 @@ a symlink into a git clone works.
 ```bash
 git clone https://github.com/iainelder/claude-plugins.git ~/repos/claude-plugins
 mkdir -p ~/.claude/skills
-ln -s ~/repos/claude-plugins/plugins/tools ~/.claude/skills/tools
+ln -s ~/repos/claude-plugins/plugins/iainelder ~/.claude/skills/iainelder
 ```
 
-This loads as `tools@skills-dir`, with the same `/tools:` invocation prefix as the
-marketplace install. Keep the symlink's name identical to the plugin's manifest name.
+This loads as `iainelder@skills-dir`, with the same `/iainelder:` invocation prefix as
+the marketplace install. Keep the symlink's name identical to the plugin's manifest name.
 
 Symlink the **plugin** directory, not individual skills. New skills added to the
 plugin then appear from a `git pull` alone, with nothing to set up on that machine.
@@ -55,11 +55,11 @@ Confirm it loaded:
 
 ```bash
 claude plugin list
-claude plugin details tools@skills-dir
+claude plugin details iainelder@skills-dir
 ```
 
-Do not use both installation methods on one machine: `tools@iainelder` and
-`tools@skills-dir` would both load, and every skill would appear twice.
+Do not use both installation methods on one machine: `iainelder@iainelder` and
+`iainelder@skills-dir` would both load, and every skill would appear twice.
 
 ### Keeping it current
 
@@ -71,12 +71,31 @@ start. A `SessionStart` hook works too, if pull-on-use suits the machine better.
 Edits to a `SKILL.md` take effect in the current session. Changes to other plugin
 components need `/reload-plugins` or a restart.
 
+## Naming
+
+The plugin is named `iainelder` rather than something descriptive like `tools` on
+purpose.
+
+**Plugin names are not qualified by their marketplace.** Skills are invoked as
+`/<plugin>:<skill>`, never `/<plugin>@<marketplace>:<skill>`, so the plugin name alone
+is the namespace. The duplicate-name check in `claude plugin validate` only looks
+*within* one marketplace.
+
+Two plugins named `tools` from different marketplaces therefore install side by side
+with no error and no warning, both claiming the `/tools:` prefix, and a bare
+`claude plugin details tools` silently resolves to whichever it finds first. On a
+machine that already has organisation marketplaces installed, a generic plugin name is
+a real hazard.
+
+A plugin name only has to be unique among the plugins a given user has installed, but
+a GitHub username is a cheap way to guarantee that.
+
 ## Development
 
 Edit this checkout and load it directly, without touching the installed copy:
 
 ```bash
-claude --plugin-dir ~/Repos/claude-plugins/plugins/tools
+claude --plugin-dir ~/Repos/claude-plugins/plugins/iainelder
 ```
 
 A `--plugin-dir` plugin takes precedence over an installed plugin of the same name for
@@ -89,5 +108,5 @@ Validate before pushing:
 
 ```bash
 claude plugin validate .
-claude plugin validate ./plugins/tools
+claude plugin validate ./plugins/iainelder
 ```

@@ -8,9 +8,9 @@
   },
   "plugins": [
     {
-      "name": "tools",
+      "name": "iainelder",
       "description": "Iain Elder's portable Claude Code skills",
-      "source": "./plugins/tools",
+      "source": "./plugins/iainelder",
       "category": "productivity"
     }
   ]
