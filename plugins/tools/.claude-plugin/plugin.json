@@ -1,0 +1,10 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "tools",
+  "version": "0.1.0",
+  "description": "Iain Elder's portable Claude Code skills",
+  "author": {
+    "name": "Iain Samuel McLean Elder",
+    "email": "iain@isme.es"
+  }
+}

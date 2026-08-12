@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "iainelder",
+  "description": "Iain Elder's personal Claude Code plugins",
+  "owner": {
+    "name": "Iain Samuel McLean Elder",
+    "url": "https://github.com/iainelder"
+  },
+  "plugins": [
+    {
+      "name": "tools",
+      "description": "Iain Elder's portable Claude Code skills",
+      "source": "./plugins/tools",
+      "category": "productivity"
+    }
+  ]
+}
