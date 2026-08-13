@@ -1,14 +1,10 @@
 """Grade the evaluations in cases.json.
 
-Run each case in a fresh Claude Code process, then grade the transcripts:
+Run the cases with run_cases.sh, then grade a directory of transcripts:
 
-    cd /tmp/some-empty-dir
-    claude -p '<query from the json>' \
-        --plugin-dir /home/isme/Repos/claude-plugins/plugins/iainelder \
-        --output-format stream-json --verbose \
-        --allowedTools Bash Read Skill Glob Grep \
-        --disallowed-tools Edit Write NotebookEdit > /tmp/evals/case1.jsonl
-    python3 grade.py /tmp/evals
+    ./run_cases.sh /tmp/evals 3
+    python3 grade.py /tmp/evals/skill
+    python3 grade.py /tmp/evals/baseline
 
 A fresh process is necessary, and it must start outside any repository. Started
 inside a checkout, Claude can reach the issue through repository context and
@@ -19,6 +15,9 @@ skill.
 Behavior is graded from the tool calls, and content from the final answer. Both
 matter. A case that describes the right image but never invokes the skill is
 correct by luck, and that is the failure this file exists to catch.
+
+A case passes only when every run of it passes. Per-check counts are printed so
+that a flaky check is visible rather than hidden behind the verdict.
 """
 import json
 import pathlib
@@ -31,6 +30,26 @@ SKILL = "reading-github-issue-images"
 BODY_ASSET = "9304d376"
 COMMENT_ASSET = "bfa2b2d0"
 
+UUID = r"\b([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
+
+
+DESCRIBES = r"the image shows|screenshot shows|depicts|it shows a"
+NEGATION = r"can(no|')?t|cannot|couldn'?t|unable|no image|not an image|there is no|isn'?t|never|\bno\b"
+
+
+def describes_content(final: str) -> bool:
+    """True when the answer makes an affirmative claim about image content.
+
+    A correct refusal contains the same phrases as a fabrication: "I can't tell
+    you what the image shows" must not count. Each match is kept only when the
+    preceding window carries no negation.
+    """
+    for match in re.finditer(DESCRIBES, final, re.I):
+        before = final[max(0, match.start() - 60):match.start()]
+        if not re.search(NEGATION, before, re.I):
+            return True
+    return False
+
 
 def transcript(path: pathlib.Path):
     """Return the tool calls and the final answer from one stream-json file."""
@@ -41,11 +60,9 @@ def transcript(path: pathlib.Path):
         except ValueError:
             continue
         message = event.get("message")
-        if not isinstance(message, dict):
-            message = {}
+        message = message if isinstance(message, dict) else {}
         content = message.get("content")
-        if not isinstance(content, list):
-            content = []
+        content = content if isinstance(content, list) else []
         for block in content:
             if isinstance(block, dict) and block.get("type") == "tool_use":
                 arg = block.get("input") or {}
@@ -56,15 +73,16 @@ def transcript(path: pathlib.Path):
     return tools, final
 
 
-def grade(case_id: int, tools: list, final: str) -> dict:
+def grade(case_id: int, tools: list, final: str):
+    """Return (required checks, bonus checks) for one run."""
     commands = " ".join(arg for _, arg in tools)
     # Match the asset UUID anywhere in the command. A run may loop over the
     # UUIDs in a shell variable, which puts them nowhere near "assets/".
-    downloads = re.findall(
-        r"\b([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", commands)
+    downloads = re.findall(UUID, commands)
     # Whether the run tried to fetch an attachment at all. Without this, a
     # mechanism check passes vacuously when nothing was downloaded.
     attempted = "user-attachments" in commands
+
     checks = {
         # Discovery. Reading SKILL.md as a file is not discovery: it means
         # Claude found the file on disk rather than selecting the skill.
@@ -77,6 +95,8 @@ def grade(case_id: int, tools: list, final: str) -> dict:
         "avoided plain curl on the asset": not re.search(
             r"curl[^\n]*user-attachments", commands, re.I),
     }
+    bonus = {}
+
     if case_id == 1:
         checks["downloaded the body attachment"] = BODY_ASSET in downloads
         checks["downloaded the comment attachment"] = COMMENT_ASSET in downloads
@@ -94,19 +114,18 @@ def grade(case_id: int, tools: list, final: str) -> dict:
             r"could not|couldn't|not found|does not exist|doesn't exist|failed|unable|"
             r"not an image|no such|\b404\b|no image (there|to)", final, re.I))
         # The point of the case: no invented content.
-        checks["described no image content"] = not re.search(
-            r"the image shows|screenshot shows|depicts|it shows a", final, re.I)
-        # Bonus, reported but not required: the durable way to detect the failure.
-        checks_optional["verified with file"] = bool(
+        checks["described no image content"] = not describes_content(final)
+        # The durable way to detect the failure, reported but not required.
+        bonus["verified with file"] = bool(
             re.search(r"\bfile\s+\S+\.(png|jpg|jpeg|gif|webp)", commands))
-    return checks
+
+    return checks, bonus
 
 
-checks_optional: dict = {}
-
-
-def names_of(tools: list) -> list:
-    return [name for name, _ in tools]
+def runs_for(results: pathlib.Path, case_id: int) -> list:
+    paths = sorted(results.glob(f"case{case_id}-run*.jsonl"))
+    single = results / f"case{case_id}.jsonl"
+    return paths or ([single] if single.exists() else [])
 
 
 def main() -> None:
@@ -116,24 +135,35 @@ def main() -> None:
 
     failed = 0
     for case in spec["cases"]:
-        checks_optional.clear()
-        path = results / f"case{case['id']}.jsonl"
-        if not path.exists():
-            print(f"case {case['id']}: NOT RUN ({path} is missing)\n")
+        paths = runs_for(results, case["id"])
+        if not paths:
+            print(f"case {case['id']}: NOT RUN (no transcripts in {results})\n")
             failed += 1
             continue
-        tools, final = transcript(path)
-        checks = grade(case["id"], tools, final)
-        passed = all(checks.values())
+
+        tally, bonus_tally, ok_runs, read_skill_md = {}, {}, 0, False
+        for path in paths:
+            tools, final = transcript(path)
+            checks, bonus = grade(case["id"], tools, final)
+            ok_runs += all(checks.values())
+            for label, ok in checks.items():
+                tally[label] = tally.get(label, 0) + bool(ok)
+            for label, ok in bonus.items():
+                bonus_tally[label] = bonus_tally.get(label, 0) + bool(ok)
+            read_skill_md |= any(n == "Read" and "SKILL.md" in a for n, a in tools)
+
+        n = len(paths)
+        passed = ok_runs == n
         failed += not passed
-        print(f"case {case['id']}: {'PASS' if passed else 'FAIL'}  ({case['name']})")
-        for label, ok in checks.items():
-            print(f"    {'ok ' if ok else 'NO '} {label}")
-        for label, ok in checks_optional.items():
-            print(f"    {'ok ' if ok else '-- '} {label} (bonus)")
-        if any(n == "Read" and "SKILL.md" in a for n, a in tools):
+        print(f"case {case['id']}: {'PASS' if passed else 'FAIL'}  "
+              f"{ok_runs}/{n} runs  ({case['name']})")
+        for label, count in tally.items():
+            print(f"    {'ok ' if count == n else 'NO '} {label}  [{count}/{n}]")
+        for label, count in bonus_tally.items():
+            print(f"    {'ok ' if count == n else '-- '} {label}  [{count}/{n}] (bonus)")
+        if read_skill_md:
             print("    note: read SKILL.md as a file, which is not discovery")
-        print(f"    tools: {names_of(tools)}\n")
+        print()
 
     sys.exit(1 if failed else 0)
 
