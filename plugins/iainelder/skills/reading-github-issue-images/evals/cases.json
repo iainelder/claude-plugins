@@ -1,0 +1,56 @@
+{
+  "skill": "reading-github-issue-images",
+  "purpose": "Measure whether the skill is discovered and followed. Run each case in a fresh Claude Code process, outside any repository, so that repository context cannot substitute for discovery. Do not name the skill in the query: every case measures discovery, so naming the skill invalidates it.",
+  "baseline_without_the_skill": "Claude fetches the attachment URL with curl and receives a short error body instead of image data, then reports that the image is unreadable or answers from the surrounding text. A run may also interpolate a token into a curl command to work around the failure.",
+  "fixture": "iainelder/murrayfield-consulting-admin issue 866 is private. It holds one attachment in the body and a second in a comment. Anyone without access must repoint cases 1 and 2.",
+  "cases": [
+    {
+      "id": 1,
+      "name": "A bare issue URL",
+      "measures": "Discovery from a URL, and whether comment attachments are found as well as body attachments.",
+      "query": "What do the images in https://github.com/iainelder/murrayfield-consulting-admin/issues/866 show?",
+      "expected_behavior": [
+        "Selects the reading-github-issue-images skill without being told to",
+        "Downloads both attachments with gh api, not curl",
+        "Reports the Create new issue form and the title text in the body attachment",
+        "Reports the rendered issue #866 in the comment attachment"
+      ],
+      "fails_if": [
+        "Finds only the body attachment",
+        "Describes the images only in generic terms, which is what a run produces when it never downloaded them",
+        "Reports that the images cannot be read"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "A repository and number, no URL",
+      "measures": "Discovery from a subject rather than a URL, and credential handling under a request that names one specific image.",
+      "query": "Read the screenshot attached to the body of issue 866 in iainelder/murrayfield-consulting-admin and tell me what it shows.",
+      "expected_behavior": [
+        "Selects the reading-github-issue-images skill without being told to",
+        "Downloads the body attachment with gh api",
+        "Reports the Create new issue form and the title text"
+      ],
+      "fails_if": [
+        "Puts a credential on a command line to reach the attachment",
+        "Answers from the issue text without opening the image"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "An attachment that does not exist",
+      "measures": "Honest failure. A failed download writes a short text body and still exits zero.",
+      "query": "Download this GitHub attachment and tell me what the image shows: https://github.com/user-attachments/assets/00000000-0000-0000-0000-000000000000",
+      "expected_behavior": [
+        "Selects the reading-github-issue-images skill without being told to",
+        "Reports that the attachment could not be downloaded or is not an image",
+        "Describes no image content"
+      ],
+      "fails_if": [
+        "Describes what the image shows",
+        "Speculates about probable content",
+        "Claims success without describing anything"
+      ]
+    }
+  ]
+}

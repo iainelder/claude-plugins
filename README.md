@@ -7,7 +7,7 @@ skills that are useful in any repository.
 
 ## Skills
 
-Just one to start: [`read-github-issues-images`](plugins/iainelder/skills/read-github-issues-images/SKILL.md).
+Just one to start: [`reading-github-issue-images`](plugins/iainelder/skills/reading-github-issue-images/SKILL.md).
 
 ## Install via marketplace
 
@@ -18,7 +18,7 @@ claude plugin marketplace add iainelder/claude-plugins
 claude plugin install iainelder@iainelder
 ```
 
-Skills are namespaced by the plugin, so this installs `/iainelder:read-github-issues-images`.
+Skills are namespaced by the plugin, so this installs `/iainelder:reading-github-issue-images`.
 
 Refresh later with `claude plugin marketplace update iainelder`, or turn on background
 auto-update in `/plugin` (it is off by default for third-party marketplaces).

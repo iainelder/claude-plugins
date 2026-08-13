@@ -1,0 +1,19 @@
+[
+  {"query": "What does the screenshot in https://github.com/iainelder/murrayfield-consulting-admin/issues/866 show?", "should_trigger": true},
+  {"query": "Can you read the images attached to issue #866?", "should_trigger": true},
+  {"query": "I attached a screenshot to that PR — can you see it?", "should_trigger": true},
+  {"query": "Look at the attachment on https://github.com/cli/cli/pull/9000 and tell me what the error says", "should_trigger": true},
+  {"query": "There's a diagram in the second comment on issue 412. What does it show?", "should_trigger": true},
+  {"query": "Read the images in this issue: github.com/owner/repo/issues/12", "should_trigger": true},
+  {"query": "Someone pasted a stack trace as an image in that bug report. Transcribe it.", "should_trigger": true},
+  {"query": "Summarise issue #866 including anything in the screenshots", "should_trigger": true},
+
+  {"query": "What does issue #866 say?", "should_trigger": false},
+  {"query": "Open a new issue with this screenshot attached", "should_trigger": false},
+  {"query": "Read the image at ./docs/architecture.png", "should_trigger": false},
+  {"query": "Why is the image in my README not rendering on GitHub?", "should_trigger": false},
+  {"query": "Download the release asset from the latest GitHub release", "should_trigger": false},
+  {"query": "List the open pull requests on this repo", "should_trigger": false},
+  {"query": "Take a screenshot of this page and attach it to the issue", "should_trigger": false},
+  {"query": "Fetch this image: https://example.com/logo.png", "should_trigger": false}
+]

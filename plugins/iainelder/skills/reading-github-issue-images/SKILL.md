@@ -1,11 +1,11 @@
 ---
-name: read-github-issues-images
-description: Read images and screenshots attached to a GitHub issue, pull request, or comment. Use when the user gives a GitHub issue or PR URL or number and asks what an attached image shows, or says things like "read the images in this issue", "what does the screenshot in #123 show", "look at the attachment on that PR", "can you see the image I attached".
+name: reading-github-issue-images
+description: Reads images and screenshots attached to a GitHub issue, pull request, or comment. Use when the user gives a GitHub issue or PR URL or number and asks what an attached image shows, or says things like "read the images in this issue", "what does the screenshot in #123 show", "look at the attachment on that PR", "can you see the image I attached".
 ---
 
-# Read images attached to GitHub issues
+# Reading images attached to GitHub issues
 
-GitHub stores issue and pull request attachments at `https://github.com/user-attachments/assets/<uuid>`. For a private repository these URLs are **not** publicly readable: an unauthenticated request returns a short error body (around 9 bytes) rather than image data. The attachment must be fetched with authentication, saved to a file, and then read.
+GitHub stores issue and pull request attachments at `https://github.com/user-attachments/assets/<uuid>`. For a private repository these URLs are **not** publicly readable: an unauthenticated request returns a short text body rather than image data. The attachment must be fetched with authentication, saved to a file, and then read.
 
 ## Steps
 
