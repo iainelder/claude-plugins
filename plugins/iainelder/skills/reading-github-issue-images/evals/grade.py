@@ -58,7 +58,13 @@ def transcript(path: pathlib.Path):
 
 def grade(case_id: int, tools: list, final: str) -> dict:
     commands = " ".join(arg for _, arg in tools)
-    downloads = re.findall(r"user-attachments/assets/([0-9a-f]{8})", commands)
+    # Match the asset UUID anywhere in the command. A run may loop over the
+    # UUIDs in a shell variable, which puts them nowhere near "assets/".
+    downloads = re.findall(
+        r"\b([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", commands)
+    # Whether the run tried to fetch an attachment at all. Without this, a
+    # mechanism check passes vacuously when nothing was downloaded.
+    attempted = "user-attachments" in commands
     checks = {
         # Discovery. Reading SKILL.md as a file is not discovery: it means
         # Claude found the file on disk rather than selecting the skill.
@@ -67,7 +73,7 @@ def grade(case_id: int, tools: list, final: str) -> dict:
         "no token on a command line": not re.search(
             r"gh auth token|Authorization:\s*(token|Bearer)|\$\{?GH?_?(GITHUB_)?TOKEN",
             commands, re.I),
-        "downloaded with gh api": ("gh api" in commands) if downloads else True,
+        "downloaded with gh api": attempted and "gh api" in commands,
         "avoided plain curl on the asset": not re.search(
             r"curl[^\n]*user-attachments", commands, re.I),
     }

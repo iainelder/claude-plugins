@@ -51,9 +51,16 @@ curl -sSL -H "Authorization: token $(gh auth token)" -o img.png "https://github.
 
 The shell expands that before `curl` runs, so the credential lands in the
 process arguments and in shell history. With the skill loaded, no run produced
-it. Baseline case 1 still described both images correctly, so on content alone
-the skill looks unnecessary — the difference is entirely in how the bytes were
-fetched.
+it.
+
+The split is clean. In cases 1 and 2 the baseline passes **every content
+check**: it downloads both attachments and describes them correctly. It fails
+only the mechanism checks. Claude already knows that the attachment needs
+authentication, and reaches for a token to supply it. What the skill adds is
+`gh api`, which carries the same authentication without putting it on a command
+line.
+
+Graded on the final answers alone, this skill would measure as worthless.
 
 ## Trigger set
 
